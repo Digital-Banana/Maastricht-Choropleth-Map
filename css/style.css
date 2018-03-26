@@ -89,6 +89,7 @@ a:hover {
 
 p {
     line-height: 1.5;
+    color: #333;
 }
 
 .italic {
@@ -109,6 +110,10 @@ pre code {
   border: 1px solid #aaa;
   display: block;
   padding: 0 20px 20px;
+}
+
+h1, h2 {
+    color: grey;
 }
 
 h1 {
