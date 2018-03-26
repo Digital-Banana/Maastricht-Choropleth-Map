@@ -1,0 +1,121 @@
+/* MAP STYLE */
+svg {
+    border: 1px solid #ddd;
+}
+
+g.maastricht path {
+    stroke: indigo;
+    stroke-width: 1px;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+g.maastricht path:hover {
+    opacity: .85;
+    transition: .2s;
+}
+
+div.tooltip {
+    position: absolute; 
+    width: 160px;
+    height: 110px;
+    padding: 15px;
+    background: #eee;
+    border: 1px solid #444;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+div.tooltip h1, 
+div.tooltip h2, 
+div.tooltip h3, 
+div.tooltip h4, 
+div.tooltip p, 
+div.tooltip a, 
+div.tooltip span, 
+div.tooltip div {
+    margin: 0;
+}
+
+.tooltip p {
+    margin: 0;
+    display: inline;
+    width: 200px;
+}
+
+/* TAG */
+.tagcontainer p, .tagcontainer a {
+    color: #888;
+    text-decoration: none;
+}
+
+.tagcontainer p:hover, .tagcontainer a:hover {
+    color: #222;
+}
+
+.tagcontainer {
+    width: 600px;
+    max-width: 100%;
+    margin: 0 auto -10px auto;
+    height: 28px;
+}
+
+/* BLOG STYLE */
+html {
+    font-family: 'Roboto', sans-serif;
+    border-top: 5px solid #00a8ff;
+}
+
+body {
+    background: whitesmoke;
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 0 20px 0;
+}
+
+a {
+    color: #00a8ff;
+    text-decoration: none;
+    border-bottom: 1px dotted;
+}
+
+a:hover {
+    border-bottom-style: solid;
+}
+
+p {
+    line-height: 1.5;
+}
+
+.italic {
+    font-style: italic;
+}
+
+img {
+    width: 100%;
+    border: 1px solid #ddd;
+}
+
+ul, ul li, li {
+    list-style-type: none;
+}
+
+pre code {
+  background-color: #eee;
+  border: 1px solid #aaa;
+  display: block;
+  padding: 0 20px 20px;
+}
+
+h1 {
+    font-size: 1.8em;
+}
+
+h2 {
+    font-size: 1.2em;
+    margin: 40px 0 -10px;
+}

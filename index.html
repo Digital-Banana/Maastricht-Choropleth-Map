@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Maastricht</title>
+    
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet">
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+<body>
+<div class="container">
+
+<div class="tagcontainer">
+   <div class=" headerleft">
+    <p><a href="https://digital-banana.github.io">Digital Banana // Kenny Jeurissen</a></p>
+    </div>
+</div>
+
+<h1>Let's Make a Simple City Choropleth Map with D3 (v4)</h1>
+
+<p>What we'll make:</p>
+<svg id="map"></svg>
+<p>This map represents each neighborhood of the <a href="https://www.google.nl/maps/place/Maastricht/@50.8577758,5.6308641,12z/data=!3m1!4b1!4m5!3m4!1s0x47c0e9ec5841069f:0x53eb957bccbea86e!8m2!3d50.8513682!4d5.6909725">city of Maastricht.</a> The color is based on the number of inhabitants in each area: darker colors means more people. Go ahead and hover over the image to see the tooltip with additional information.
+
+<h2>Prerequisite</h2>
+<p>Before getting started, there are two things we need that aren’t related to JavaScript/D3. These are QGIS and a shapefile of the neighborhoods of the Netherlands.</p>
+
+<p>QGIS is open source software that allows the editing and analyzing of geospatial information. It’s available for Windows, Mac, Linux and BSD. A shapefile is a geospatial vector format used by GIS software, such as QGIS. For the shapefile we need, we head to the website of the CBS (the Dutch Central Agency for Statistics). The CBS has a page dedicated for geographic data, with shapefiles freely available.</p>
+
+<p>Download <a href="https://www.qgis.org">QGIS here</a> and download the <a href="https://www.cbs.nl/nl-nl/dossier/nederland-regionaal/geografische%20data/wijk-en-buurtkaart-2017">Shapefile here.</a> For the Shapefile,  scroll down to <span class="italic">Downloads > ZIP “Wijk- en Buurtkaart 2017”.</span></p>
+
+<h2>Getting Started</h2>
+<p>We open up QGIS and drag the file <span class="italic">buurt_2017.shp</span> and <span class="italic">gem_2017.shp</span> inside. We now see the municipalities and the neighborhoods. In the bottom left we can switch the visibility of the layers on and off by clicking on the checkmarks.</p>
+
+<p>Next, we right click on the <span class="italic">buurt_2017</span> layer and select <span class="italic">toggle editing.</span> By doing this, we can individually select neighborhoods. Zoom in on the municipality and uncheck the <span class="italic">gem_2017</span> layer. In the top middle of your screen, select the button <span class="italic">Select Features by area or single click. </span></p>
+
+<img src="img/1-layers.jpg" alt="Select Features in QGIS">
+
+<p>Make sure the <span class="italic">buurt_2017</span> layer is selected and start selecting the neighborhoods. By checking and unchecking the municipalities layer, you can check if you have selected all of the neighborhoods for the municipality.  To make selections, just click and drag your mouse. For individual selections, use shift+click.</p>
+
+<p>When your neighborhoods are selected, right click on the <span class="italic">buurt_2017</span> layer and select save as… Next, here are the settings we need:</p>
+
+<ul>
+    <li>Format: GeoJSON</li>
+    <li>File name: maastricht – I saved it in a folder named map, next to my css map, js map and index.html</li>
+    <li>CRS: Default CRS: EPSG:4326 – WGS 84</li>
+    <li>Check Save only selected features</li>
+    <li>COORDINATE_PRECISION: 5</li>
+</ul>
+<p>Leave the rest as it and hit OK.</p>
+
+<img src="img/2-settings.jpg" alt="QGIS Shapefile Export Settings for GeoJSON">
+
+<h2>Coding!</h2>
+<p>Let’s get started with the code! Make sure to add an SVG with the id map in the html. My index.html file looks like this:</p>
+
+<pre>
+<code>
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&nbsp;&nbsp;&nbsp; &lt;meta charset="UTF-8"&gt;
+&nbsp;&nbsp;&nbsp; &lt;title&gt;Maastricht&lt;/title&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &lt;link rel="stylesheet" href="css/style.css"&gt;
+&nbsp;&nbsp;&nbsp; &lt;link href="https://fonts.googleapis.com/css?family=Roboto:400,700" 
+&nbsp;&nbsp;&nbsp;&nbsp;rel="stylesheet"&gt;
+&nbsp;&nbsp;&nbsp; &lt;script src="https://d3js.org/d3.v4.min.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;svg id="map"&gt;&lt;/svg&gt;
+&lt;script src="js/index.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code>
+</pre>
+
+<h2>Initial Setup</h2>
+<p>We start by defining our margins, width and height. I set my width to 300 and height to 400, but the size is completely up to you. Next we create a variable svg and select the #map using d3.select(“#map”).</p>
+
+<pre>
+<code>
+var margin = { top: 50, right: 50, bottom: -20, left: 50 },
+    width = 300 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+var svg = d3.select("#map")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top +")");
+</code>
+</pre>
+
+<h2>Mapping</h2>
+<p>Next comes the mapping part. We have to set up a projection for the display of the map. I use geoMercator in this case, because most online maps (like Google Maps) and latitude and longitude finders use the Mercator projection as well. Use <a href="https://www.latlong.net">a latitude and longitude finder</a> to find the correct coordinates. I enter Maastricht and end up with coordinates 50.851368 for the latitude and 5.690973 for the longitude. We need to center our projection on these coordinates when we enter our path.</p>
+
+<pre>
+<code>
+var projection = d3.geoMercator()
+    .center([5.690973, 50.851368])
+    .scale(110000)
+    .translate([width / 2, height / 2]);
+
+var path = d3.geoPath()
+    .projection(projection);
+</code>
+</pre>
+
+<p>Let’s create two variables, one for the values of the population and one to create a color palette. I use the following:</p>
+
+<pre>
+<code>
+var totaalInw = [0, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000];
+var palette = ['#fff7f3','#fde0dd','#fcc5c0','#fa9fb5','#f768a1','#dd3497',
+'#ae017e','#7a0177','#49006a'];
+</code>    
+</pre>
+
+<p>Next, we create a variable in which we use d3.scaleLinear and enter the two previously created variables:</p>
+
+<pre>
+<code>
+var color = d3.scaleLinear()
+    .domain(totaalInw)
+    .range(palette);
+</code>
+</pre>
+
+<p>Now, let’s create the map. I create a d3.json function with a path that goes to my maastricht.json file. Inside, I create a function that creates the map. Then we add in some CSS to define the outline of our neighborhoods. I use the following code:</p>
+
+<pre>
+<code>
+d3.json("../map/maastricht.json", function(err, json) {
+    if (err) throw error;
+
+    function drawMap() {
+        svg = svg.append("g")
+            .attr("class", "maastricht")
+            .selectAll("#map")
+            .data(json.features);
+
+        svg
+            .enter().append("g")
+            .append("path")
+            .attr("d", path);
+    };
+    
+    drawMap();
+});
+
+g.maastricht path {
+    stroke: white;
+    stroke-width: 1px;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+g.maastricht path:hover {
+    opacity: .85;
+    transition: .2s;
+}
+</code>
+</pre>
+
+<p>You should now be seeing the city with its neighborhoods outlined in white. Change the stroke color to whatever you please. I changed it to indigo, ‘cause purple is dope.</p>
+
+<p>Let’s change the fill color of each neighborhood next. We do this simply by adding a style function and have it return the color based on its inhabitants. In the JSON file there’s a “AANT_INW” key that has the corresponding value stored in it. Add this underneath the path, so we end up with the following code:</p>
+
+<pre>
+<code>
+svg
+    .enter().append("g")
+    .append("path")
+    .attr("d", path)
+    .style("fill", function(d) {
+        return color(d.properties.AANT_INW);
+    });
+</code>
+</pre>
+
+<p>We should now be seeing the colored neighborhoods. The darker colors represent neighborhoods with more inhabitants. Next up I create a variable called tip. We append a div to this one with the class of tooltip and set its style to an opacity of 0. We will create this tooltip in CSS.</p>
+
+<pre>
+<code>
+var tip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
+div.tooltip {
+    position: absolute; 
+    width: 160px;
+    height: 100px;
+    padding: 15px;
+    background: #eee;
+    border: 1px solid #444;
+    border-radius: 3px;
+    pointer-events: none;
+}
+</code>
+</pre>
+
+<p>To make this a working tooltip, I added the following code after the previously create style function where we bind the colors to the number of inhabitants:</p>
+
+<pre>
+<code>
+.on("mouseover", function(d) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tip.transition()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .duration(300)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .style("opacity", .9)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tip.html(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "&lt;h4&gt;" + "Plaats " + "&lt;/h4&gt;" + "&lt;p&gt;" 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ d.properties.BU_NAAM + "&lt;/p&gt;" +
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "&lt;br&gt;" + "&lt;hr&gt; " +
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "&lt;h4&gt;" + "Inwoners " + "&lt;/h4&gt;" + "&lt;p&gt;" 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ d.properties.AANT_INW) + "&lt;/p&gt;"
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; })
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .on("mousemove", function(d) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tip&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .style("left", (d3.event.pageX + 15) + "px")
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .style("top", (d3.event.pageY + 5) + "px");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; })
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .on("mouseout", function(d) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tip.transition()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .duration(300)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .style("opacity", 0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });
+</code>
+</pre>
+
+<p>In the CSS, I added some typography and styling to make this functional:</p>
+
+<pre>
+<code>
+html {
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    background: whitesmoke;
+}
+
+h1, h2, h3, h4, p, a, span, div {
+    margin: 0;
+}
+
+.tooltip p {
+    margin: 0;
+    display: inline;
+    width: 200px;
+}
+</code>
+</pre>
+
+<p>You should now be seeing a fully working city map with a tooltip! <a href="https://bl.ocks.org/Digital-Banana/46610709d4423b90ade4e21ce78a33d0">View the full code here.</a></p>
+
+
+
+
+
+
+
+</div>
+<script src="js/index.js"></script>
+</body>
+</html>
