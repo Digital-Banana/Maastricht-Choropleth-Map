@@ -27,7 +27,7 @@ var tip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-d3.json("../map/maastricht.json", function(err, json) {
+d3.json("../../map/maastricht.json", function(err, json) {
     if (err) throw error;
 
     function drawMap() {
